@@ -71,8 +71,34 @@ Then right click on your name, go to properties>Member of>Add and in the box typ
 
 <img width="1075" height="891" alt="image" src="https://github.com/user-attachments/assets/cfccc80c-88b7-41d0-874a-a3aecadd4486" />
 
+## Step 4: Configure RAS and NAT
 
+RAS and NAT will allow our client VM to connect to the external internet from our domain controller. Go to the Server manager and click "Add roles and fatures">Remote Access>Routing> then click next and install everything.
 
+<img width="1070" height="885" alt="image" src="https://github.com/user-attachments/assets/0dc8fed9-44c9-43a8-91db-8c2b74c10bb6" />
+
+Once that is done downloading go to "Tools" at the top right and go to "Routing and Remote Access." Right click on your domain controller and click "Configure and Enable Routing and Remote Access". Click through and select NAT. and verify the networks are correct.
+
+<img width="1074" height="895" alt="image" src="https://github.com/user-attachments/assets/b4c695ae-9935-41dd-9502-fba80a00d9d7" />
+
+## Step 5: Configure DHCP
+
+To set up our DC as a DCHP server, go to "add roles and features">DHCP>next through everything to begin installation. As a DHCP server. our DC will be assigneing IP addresses automatically to users when they connect to the network. We need to set up our range of IPs so the DC can assign one to a user from the pool of IP addresses. From our initial set up, we want our range of IPs to be from 172.16.0.100-200. So we will have a pool of 100 IP address to lease to our users.
+
+<img width="1070" height="891" alt="image" src="https://github.com/user-attachments/assets/f3908441-1d01-467b-a169-538900e40ffc" />
+
+Go to "Tools">DHCP then open up our domain, right click on IPv4 and click "New Scope". Give it a name and input the information shown.
+
+<img width="1073" height="891" alt="image" src="https://github.com/user-attachments/assets/f15dbc7b-98b0-4717-9c0e-757a61b3b419" />
+
+Click next through the options until you get to Default gateway. We want this to be 172.168.0.1 this is our domain controller's IP address and our DNS server to be 172.16.0.1. Finally ignore WINS server set up.
+
+<img width="1072" height="890" alt="image" src="https://github.com/user-attachments/assets/61982bdf-4585-45dc-9660-62447fd7974d" />
+
+Fianlly, authorize your DHCP pool in the domain, refresh and your IPv4 should turn green.
+<img width="755" height="564" alt="image" src="https://github.com/user-attachments/assets/ee506488-c032-4c26-87a4-354e323b21d0" />
+
+## Step 6 Generate Users
 
 
 
