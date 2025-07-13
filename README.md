@@ -19,17 +19,61 @@ Next we need to go into Virtual Box and Create our two Machines.
 This is the set up I have for my Domain Controller. You can adjust the RAM for more or less depending how fast you want it to run, but make sure you have at least 20Gb of hard disk space. Take a look at the Network section. I added two Network adaptors. One is NAT which is facing the outside internet and is connected to my host machine. The other is facing the internal network which will be connected to our client machine when we build it.
 
 <img width="633" height="466" alt="image" src="https://github.com/user-attachments/assets/be032e26-06c3-45ee-911a-ebc136c964de" />
+
 When you start up Windows Server for the first time you will have to go through initial configuration. Make sure to select the "Desktop Experience" as shown. This gives you a nice GUI to work with instad of having to do everything in command line. Which makes it much easier. Go through all the Windows and select the most appropriate options. Generate an easy to remember password. and Let the DC go through all the inital bootup processes.
 
 ### Client Machine
 <img width="943" height="926" alt="image" src="https://github.com/user-attachments/assets/46a21928-684f-473e-b26a-a3a345bedd7b" />
+
 This is the set up I have for my client machine. Feel free to adjust the amount of RAM and processors dedicated to your devcie as neccesary. Make sure to go to settings>network and change the network adapter to the internal network. This will allow it to only connect and get IPs from the DC that we just created. 
 
 Start up the machine and go through all the initial configuration steps and set up an easy to remember password. Click through and ignore all the promotional stuff for various Microsoft products.
 
 <img width="1021" height="831" alt="image" src="https://github.com/user-attachments/assets/2bf3499b-309c-4db5-9c7d-b3ba83c4d274" />
+
 After several minutes we finally have our client VM created. For now, close this VM as we will come back to it later.
 
 ## Step 2: Confiure Networks on Domain controller
 ### Internal Network
+
+First, go to your Domain Controller and inside settings go to Network and Internet>Network connections. There you will see two Ethernets.
+
+<img width="1076" height="890" alt="image" src="https://github.com/user-attachments/assets/709a8ed1-aad4-42d2-84ca-f0c036174f3e" />
+
+For clarity, rename "Ethernet" to "External Internet" and "Ethernet 2" to "Internal Network" for clarity. Click on "Internal Network" and go to properties>Internet Protocol Version 4 (TCP/IPv4) and manually give it an IP address of 176.16.0.1 with a /24 subnet mask. For the perferred DNS server use loopback address of 127.0.01. 
+
+<img width="1075" height="891" alt="image" src="https://github.com/user-attachments/assets/595d6f62-36c0-4f52-91aa-2dd4142e879b" />
+
+### External Network
+Our external network is already connected because from the VirtualBox settings we have it configured so Adapter 1 uses NAt. There is no further configuration for our External Network
+
+<img width="943" height="922" alt="image" src="https://github.com/user-attachments/assets/91b9daf1-bd94-4322-b9db-df53147bed67" />
+
+## Step 3:  Configuring Active Domain/Active Directory Domain Services
+Go to the server manager dashboard and click on "Add roles and features". Click next through everything and select "Active Directory Domain Services" and install it onto the server.
+
+<img width="1071" height="895" alt="image" src="https://github.com/user-attachments/assets/9566c384-cf6f-46a3-aea6-bb148c261683" />
+
+Then go to the flag at the top left and promote this server to the domain controller. Then go to add new forest and create a new root domain. You can name this whatever you want. Then add a password once prompted. Click through next for everything else.
+
+<img width="1075" height="895" alt="image" src="https://github.com/user-attachments/assets/6f85118d-0aa9-4b76-aea3-776d04bfb2cb" />
+
+<img width="1072" height="893" alt="image" src="https://github.com/user-attachments/assets/a1011d84-584b-4a07-8469-6d29aac6779b" />
+
+### Creating Domain Admin Account
+Once your DC is done restarting we are going to create our own dedicated domain admin account. At the bottom left, go to settings>Windows Administration Tools> Active Directory Users and Computers. Under mydomian.com create an organization and call it "ADMINS". Create a uder with your login credentials as shown.
+
+<img width="1073" height="893" alt="image" src="https://github.com/user-attachments/assets/5be03f56-ab8c-42f0-bf41-f947cae0e5d4" />
+
+Then right click on your name, go to properties>Member of>Add and in the box type "Domain Admins" and click add and apply. Then sign out of the current account and sign into the new admin account we just created.
+
+<img width="1073" height="889" alt="image" src="https://github.com/user-attachments/assets/c2b32bf5-497b-48af-8273-589d125b5c94" />
+
+<img width="1075" height="891" alt="image" src="https://github.com/user-attachments/assets/cfccc80c-88b7-41d0-874a-a3aecadd4486" />
+
+
+
+
+
+
 
