@@ -5,6 +5,7 @@ The objective of this lab is to set up a Windows 2019 server and configure Activ
 
 ## Set up
 <img width="1736" height="1032" alt="image" src="https://github.com/user-attachments/assets/49d34c13-08c8-4f3e-83ef-b54985aaab03" />
+
 The set up will look something like this. In this lab we will be deploying two Virtual Machines (VMs) One is our Server, the other is a client. I will be using Oracle Virtual Box, but any VM software will work. Our Domain Controller (DC) will have two NICs, one is set up to face inside to our private network and will be connected to our client VM. Our second NIC will be facing externally to the internet. This will be connected to our host machine which we will configure DNS and DHCP to give our VM actauly IP addresses.
 
 On our DC we will also configure a DCHP scope for our internal network "users" which we will be using a powershell script to generate users to simulate what it would be like to manage permissions of an Office of 1,000+ employees.
@@ -40,12 +41,12 @@ First, go to your Domain Controller and inside settings go to Network and Intern
 
 <img width="1076" height="890" alt="image" src="https://github.com/user-attachments/assets/709a8ed1-aad4-42d2-84ca-f0c036174f3e" />
 
-For clarity, rename "Ethernet" to "External Internet" and "Ethernet 2" to "Internal Network" for clarity. Click on "Internal Network" and go to properties>Internet Protocol Version 4 (TCP/IPv4) and manually give it an IP address of 176.16.0.1 with a /24 subnet mask. For the perferred DNS server use loopback address of 127.0.01. 
+For clarity, rename "Ethernet" to "External Internet" and "Ethernet 2" to "Internal Network". Click on "Internal Network" and go to properties>Internet Protocol Version 4 (TCP/IPv4) and manually give it an IP address of 176.16.0.1 with a /24 subnet mask. For the perferred DNS server use loopback address of 127.0.01. 
 
 <img width="1075" height="891" alt="image" src="https://github.com/user-attachments/assets/595d6f62-36c0-4f52-91aa-2dd4142e879b" />
 
 ### External Network
-Our external network is already connected because from the VirtualBox settings we have it configured so Adapter 1 uses NAt. There is no further configuration for our External Network
+Our external network is already connected because from the VirtualBox settings we have it configured so Adapter 1 uses NAT. There is no further configuration for our External Network
 
 <img width="943" height="922" alt="image" src="https://github.com/user-attachments/assets/91b9daf1-bd94-4322-b9db-df53147bed67" />
 
@@ -98,8 +99,112 @@ Click next through the options until you get to Default gateway. We want this to
 Fianlly, authorize your DHCP pool in the domain, refresh and your IPv4 should turn green.
 <img width="755" height="564" alt="image" src="https://github.com/user-attachments/assets/ee506488-c032-4c26-87a4-354e323b21d0" />
 
-## Step 6 Generate Users
+## Step 6: Generate Users
 
+Next we will use a Powershell script to randomly generate names of users then create users in our Active Directory with another Powershell script. Both scripts can be found in the packages of this respository. The Generate-Names script looks like this:
+### Generate_Names
 
+         # ----- Edit these Variables for your own Use Case ----- #
+    $PASSWORD_FOR_USERS   = "Password1"
+    $NUMBER_OF_ACCOUNTS_TO_CREATE = 10000
+    # ------------------------------------------------------ #
+    
+    Function generate-random-name() {
+        $consonants = @('b','c','d','f','g','h','j','k','l','m','n','p','q','r','s','t','v','w','x','z')
+        $vowels = @('a','e','i','o','u','y')
+        $nameLength = Get-Random -Minimum 3 -Maximum 7
+        $count = 0
+        $name = ""
+    
+        while ($count -lt $nameLength) {
+            if ($($count % 2) -eq 0) {
+                $name += $consonants[$(Get-Random -Minimum 0 -Maximum $($consonants.Count - 1))]
+            }
+            else {
+                $name += $vowels[$(Get-Random -Minimum 0 -Maximum $($vowels.Count - 1))]
+            }
+            $count++
+        }
+    
+        return $name
+    
+    }
+    
+    $count = 1
+    while ($count -lt $NUMBER_OF_ACCOUNTS_TO_CREATE) {
+        $fisrtName = generate-random-name
+        $lastName = generate-random-name
+        $username = $fisrtName + '.' + $lastName
+        $password = ConvertTo-SecureString $PASSWORD_FOR_USERS -AsPlainText -Force
+    
+        Write-Host "Creating user: $($username)" -BackgroundColor Black -ForegroundColor Cyan
+        
+        New-AdUser -AccountPassword $password `
+                   -GivenName $firstName `
+                   -Surname $lastName `
+                   -DisplayName $username `
+                   -Name $username `
+                   -EmployeeID $username `
+                   -PasswordNeverExpires $true `
+                   -Path "ou=_EMPLOYEES,$(([ADSI]`"").distinguishedName)" `
+                   -Enabled $true
+        $count++
+    }
+
+The next script is our Create_User script:
+### Create_Users
+
+    # ----- Edit these Variables for your own Use Case ----- #
+    $PASSWORD_FOR_USERS   = "Password1"
+    $USER_FIRST_LAST_LIST = Get-Content .\names.txt
+    # ------------------------------------------------------ #
+    
+    $password = ConvertTo-SecureString $PASSWORD_FOR_USERS -AsPlainText -Force
+    New-ADOrganizationalUnit -Name _USERS -ProtectedFromAccidentalDeletion $false
+    
+    foreach ($n in $USER_FIRST_LAST_LIST) {
+        $first = $n.Split(" ")[0].ToLower()
+        $last = $n.Split(" ")[1].ToLower()
+        $username = "$($first.Substring(0,1))$($last)".ToLower()
+        Write-Host "Creating user: $($username)" -BackgroundColor Black -ForegroundColor Cyan
+        
+        New-AdUser -AccountPassword $password `
+                   -GivenName $first `
+                   -Surname $last `
+                   -DisplayName $username `
+                   -Name $username `
+                   -EmployeeID $username `
+                   -PasswordNeverExpires $true `
+                   -Path "ou=_USERS,$(([ADSI]`"").distinguishedName)" `
+                   -Enabled $true
+    }
+With these script copy them into your desktop of the Domain Controller. Open Windows PowerShell ISE and open the Generate_Users Script. It won't let you run the script right away, first you have to unrestrict execution policies, then change directory the where the scipt is located, for me that is on my desktop inside the folder called AD_PS-master:
+
+    Set-ExecutionPolicy Unrestricted
+    cd C:\Users\jacob.metter\Desktop\AD_PS-master
+
+<img width="1075" height="892" alt="image" src="https://github.com/user-attachments/assets/778690ee-8872-406f-a98d-4d5f0b6c65ef" />
+
+We should be able to see it create all the users in real time. To verify, go to Server Manager>Tools>Active Directory Users and Computers>mydomain.com>_USERS
+
+<img width="1066" height="869" alt="image" src="https://github.com/user-attachments/assets/0e2ecb05-ae35-4da0-8f13-eec673e632f5" />
+
+As we can see, we now have 1000 users in our _USERS Organizational unit. From here we can group users in different departments, organizations, and adjust their permissions as we desire.
+
+## Step 7: Verification
+
+To verify everything is working as it should, keep the DC VM open and open up the client VM we created. you can take one of your users and log in with their username and password (all passwords are "Password1" from the script we ran).
+
+<img width="1018" height="770" alt="image" src="https://github.com/user-attachments/assets/850a3f46-1946-42d0-bead-34c5c20819fe" />
+
+so far we have success, then open up a terminal and use the ipconfig commang to verify it is getting an IP address from out DHCP scope that we configured.
+
+<img width="1016" height="835" alt="image" src="https://github.com/user-attachments/assets/88ce211e-72b0-4a5d-bd16-a73c3a9ee63a" />
+
+Looks good. As we can see, it got an IP address from the scope we configured with a correct default gateway and subnet mask. Next we will try and ping the www.google.com to verify we have connectivity to the internet.
+
+<img width="1007" height="527" alt="image" src="https://github.com/user-attachments/assets/b55f9c34-b418-4016-ae13-2e678841e214" />
+
+And success. With that our users can log into their accounts, access the internet, and are separated into groups with different permissions based on their role in the company.
 
 
